@@ -1,0 +1,8 @@
+{
+  "name": "UI5 Code Generator",
+  "id": "ui5-code-generator",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"]
+}
