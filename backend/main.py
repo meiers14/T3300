@@ -22,7 +22,7 @@ class LayoutInput(BaseModel):
 @app.post("/generate-ui5")
 async def generate_code(input: LayoutInput):
     try:
-        xml_code = generate_ui5_code(input.layout)
-        return {"xml": xml_code}
+        result = generate_ui5_code(input.layout)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

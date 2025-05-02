@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from dotenv import load_dotenv
 from openai import OpenAI
 from backend.rag.search import search_similar_chunks
@@ -11,7 +12,7 @@ def describe_layout(layout: list) -> str:
     types = [el.get("ui5Type", "Unknown") for el in layout]
     return " ".join(types)
 
-def generate_ui5_code(layout_json: list) -> str:
+def generate_ui5_code(layout_json: list) -> dict:
     layout_desc = describe_layout(layout_json)
     context_chunks = search_similar_chunks(layout_desc, top_k=3)
 
@@ -41,10 +42,24 @@ def generate_ui5_code(layout_json: list) -> str:
     </mvc:View>
     """.strip()
 
+    start = time.perf_counter()
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.0
     )
+    duration = int((time.perf_counter() - start) * 1000)
 
-    return response.choices[0].message.content.strip()
+    usage = response.usage
+    xml_code = response.choices[0].message.content.strip()
+
+    return {
+        "xml": xml_code,
+        "metadata": {
+            "model": "gpt-3.5-turbo",
+            "input_tokens": usage.prompt_tokens,
+            "output_tokens": usage.completion_tokens,
+            "total_tokens": usage.total_tokens,
+            "response_ms": duration
+        }
+    }

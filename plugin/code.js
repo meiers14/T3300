@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 800, height: 900 });
+figma.showUI(__html__, { width: 1000, height: 600 });
 
 async function sendToBackend(mapped) {
   const response = await fetch("http://localhost:8000/generate-ui5", {
@@ -6,8 +6,7 @@ async function sendToBackend(mapped) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ layout: mapped })
   });
-  const result = await response.json();
-  return result.xml || result.error;
+  return await response.json();
 }
 
 function traverse(node) {
@@ -71,20 +70,22 @@ figma.ui.onmessage = async (msg) => {
   if (msg.type === 'generate-code') {
     const selection = figma.currentPage.selection;
     if (!selection || selection.length === 0) {
-      figma.ui.postMessage({ type: 'code-generated', code: '⚠️ Keine Elemente ausgewählt.' });
+      figma.ui.postMessage({ type: 'code-generated', code: 'Keine Elemente ausgewählt.' });
       return;
     }
+
     const traversed = selection.map(traverse).filter(Boolean);
     const mapped = traversed.map(mapTreeToUI5).filter(Boolean);
-    console.log("📦 Traversed JSON Preview:", mapped);
+
     try {
       const result = await sendToBackend(mapped);
-      figma.ui.postMessage({ type: 'code-generated', code: result });
+      figma.ui.postMessage({
+        type: 'code-generated',
+        code: result.xml || "Fehler: Kein Code erhalten.",
+        metadata: result.metadata || null
+      });
     } catch (e) {
-      figma.ui.postMessage({ type: 'code-generated', code: `❌ Backend-Fehler: ${e.message}` });
+      figma.ui.postMessage({ type: 'code-generated', code: `Backend-Fehler: ${e.message}` });
     }
-  }
-  if (msg.type === 'copy-to-clipboard') {
-    figma.ui.postMessage({ type: 'trigger-copy' });
   }
 };
