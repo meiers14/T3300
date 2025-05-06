@@ -1,14 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
-from backend.generator import generate_ui5_code
-from backend.preview import generate_ui5_preview_html
+from fastapi.staticfiles import StaticFiles
+from backend.api.routes import router as api_router
 
-app = FastAPI(
-    title="UI5 Code Generator",
-    version="v1"
-)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -18,23 +13,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class LayoutInput(BaseModel):
-    layout: list
+app.mount("/static", StaticFiles(directory="backend/previews"), name="static")
 
-@app.post("/generate-ui5")
-async def generate_code(input: LayoutInput):
-    try:
-        result = generate_ui5_code(input.layout)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-class PreviewInput(BaseModel):
-    xml: str
-
-@app.post("/preview-ui5", response_class=HTMLResponse)
-async def render_ui5_preview(data: PreviewInput):
-    try:
-        return generate_ui5_preview_html(data.xml)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="XML konnte nicht gerendert werden.")
+app.include_router(api_router)

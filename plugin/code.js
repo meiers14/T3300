@@ -73,12 +73,8 @@ async function requestPreviewURL(xmlCode) {
     body: JSON.stringify({ xml: xmlCode }),
   });
 
-  if (!res.ok) throw new Error("Fehler beim Laden der Vorschau");
-  const html = await res.text();
-  console.log(html);
-
-  const blob = new Blob([html], { type: "text/html" });
-  return URL.createObjectURL(blob);
+  const result = await res.json();
+  return result.url;
 }
 
 figma.ui.onmessage = async (msg) => {
