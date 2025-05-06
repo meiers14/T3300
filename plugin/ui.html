@@ -65,8 +65,9 @@
     }
   </style>
 </head>
+
 <body>
-  <div class="container-fluid">
+  <div id="default-view" class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="m-0">UI5 Code Generator</h4>
       <div class="d-flex gap-2">
@@ -83,11 +84,11 @@
       <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
         <small class="text-muted">XML-Ausgabe</small>
         <div class="d-flex gap-2">
-          <!-- <button id="copy-button" class="btn btn-light btn-icon" disabled title="Kopieren">
-            <i class="bi bi-clipboard"></i>
-          </button> -->
-          <button id="download-button" class="btn btn-light btn-icon" disabled title="Herunterladen">
+          <button id="download-button" class="btn btn-light btn-icon" title="Herunterladen" disabled>
             <i class="bi bi-download"></i>
+          </button>
+          <button id="preview-button" class="btn btn-light btn-icon" title="Vorschau anzeigen" disabled>
+            <i class="bi bi-eye"></i>
           </button>
         </div>
       </div>
@@ -102,6 +103,26 @@
     </details>
   </div>
 
+  <div id="preview-view" class="container-fluid" hidden>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="m-0">UI5 Vorschau</h4>
+      <div class="d-flex gap-2">
+        <button id="back-button" class="btn btn-outline-secondary btn-sm" title="Zurück">
+          <i class="bi bi-arrow-left"></i> Zurück
+        </button>
+      </div>
+    </div>
+    <div class="card code-card">
+      <div class="card-header d-flex justify-content-between align-items-center py-2 px-3">
+        <small class="text-muted">Gerenderte Vorschau</small>
+      </div>
+      <div class="card-body p-0" style="height: 100%; position: relative;">
+        <iframe id="fullscreen-preview" style="border: none; width: 100%; height: 100%;" hidden></iframe>
+        <div id="fullscreen-error" class="p-3 text-danger small" hidden>Vorschau konnte nicht geladen werden.</div>
+      </div>
+    </div>
+  </div>
+
   <script>
     let lastGeneratedCode = "";
 
@@ -111,6 +132,13 @@
     const resetBtn = document.getElementById('reset');
     const metaBox = document.getElementById('meta-box');
     const metaContent = document.getElementById('metadata');
+
+    const previewBtn = document.getElementById("preview-button");
+    const backBtn = document.getElementById("back-button");
+    const previewView = document.getElementById("preview-view");
+    const defaultView = document.getElementById("default-view");
+    const fullscreenPreview = document.getElementById("fullscreen-preview");
+    const fullscreenError = document.getElementById("fullscreen-error");
 
     generateBtn.onclick = () => {
       output.textContent = "Wird generiert …";
@@ -127,6 +155,10 @@
       downloadBtn.disabled = true;
       metaBox.hidden = true;
       metaContent.innerHTML = "";
+      fullscreenPreview.src = "";
+      fullscreenPreview.hidden = true;
+      fullscreenError.hidden = true;
+      previewBtn.disabled = true;
     };
 
     downloadBtn.onclick = () => {
@@ -139,10 +171,20 @@
       URL.revokeObjectURL(url);
     };
 
+    previewBtn.onclick = () => {
+      defaultView.hidden = true;
+      previewView.hidden = false;
+    };
+
+    backBtn.onclick = () => {
+      previewView.hidden = true;
+      defaultView.hidden = false;
+    };
+
     onmessage = (event) => {
       const msg = event.data.pluginMessage;
-      
-      if (msg.type === 'code-generated') {
+
+      if (msg.type === 'code-generated' && ('code' in msg || 'previewUrl' in msg)) {
         lastGeneratedCode = msg.code || "";
         output.textContent = lastGeneratedCode || 'Fehler: Kein Code erhalten.';
         downloadBtn.disabled = !lastGeneratedCode;
@@ -156,6 +198,18 @@
             <div><strong>Total-Tokens:</strong> ${msg.metadata.total_tokens}</div>
             <div><strong>Dauer (ms):</strong> ${msg.metadata.response_ms}</div>
           `;
+        }
+
+        if (msg.previewUrl) {
+          fullscreenPreview.src = msg.previewUrl;
+          fullscreenPreview.hidden = false;
+          fullscreenError.hidden = true;
+          previewBtn.disabled = false;
+        } else {
+          fullscreenPreview.src = "";
+          fullscreenPreview.hidden = true;
+          fullscreenError.hidden = false;
+          previewBtn.disabled = false;
         }
       }
     };

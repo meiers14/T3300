@@ -66,6 +66,21 @@ function mapTreeToUI5(node) {
   return { ui5Type, name: node.name || "", text, layout: node.layoutMode || null, children };
 }
 
+async function requestPreviewURL(xmlCode) {
+  const res = await fetch("http://localhost:8000/preview-ui5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ xml: xmlCode }),
+  });
+
+  if (!res.ok) throw new Error("Fehler beim Laden der Vorschau");
+  const html = await res.text();
+  console.log(html);
+
+  const blob = new Blob([html], { type: "text/html" });
+  return URL.createObjectURL(blob);
+}
+
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'generate-code') {
     const selection = figma.currentPage.selection;
@@ -79,10 +94,22 @@ figma.ui.onmessage = async (msg) => {
 
     try {
       const result = await sendToBackend(mapped);
+
+      let previewURL = null;
+
+      if (result.xml) {
+        try {
+          previewURL = await requestPreviewURL(result.xml);
+        } catch (err) {
+          console.warn("Vorschaufehler:", err.message);
+        }
+      }
+
       figma.ui.postMessage({
         type: 'code-generated',
         code: result.xml || "Fehler: Kein Code erhalten.",
-        metadata: result.metadata || null
+        metadata: result.metadata || null,
+        previewUrl: previewURL
       });
     } catch (e) {
       figma.ui.postMessage({ type: 'code-generated', code: `Backend-Fehler: ${e.message}` });
