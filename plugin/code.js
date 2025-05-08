@@ -77,6 +77,17 @@ async function requestPreviewURL(xmlCode) {
   return result.url;
 }
 
+async function requestFeedbackURL (xmlCode) {
+  const res = await fetch("http://localhost:8000/feedback-ui5", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ xml: xmlCode }),
+  });
+
+  const result = await res.json();
+  return result.url;
+}
+
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'generate-code') {
     const selection = figma.currentPage.selection;
@@ -92,20 +103,19 @@ figma.ui.onmessage = async (msg) => {
       const result = await sendToBackend(mapped);
 
       let previewURL = null;
+      let feedbackURL = null;
 
       if (result.xml) {
-        try {
-          previewURL = await requestPreviewURL(result.xml);
-        } catch (err) {
-          console.warn("Vorschaufehler:", err.message);
-        }
+        previewURL = await requestPreviewURL(result.xml);
+        feedbackURL = await requestFeedbackURL(result.xml);
       }
 
       figma.ui.postMessage({
         type: 'code-generated',
         code: result.xml || "Fehler: Kein Code erhalten.",
         metadata: result.metadata || null,
-        previewUrl: previewURL
+        previewUrl: previewURL,
+        feedbackUrl: feedbackURL
       });
     } catch (e) {
       figma.ui.postMessage({ type: 'code-generated', code: `Backend-Fehler: ${e.message}` });

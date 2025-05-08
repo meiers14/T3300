@@ -1,4 +1,5 @@
 import os
+import shutil
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,8 +15,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-os.makedirs("backend/previews", exist_ok=True)
+for path in ["backend/previews", "backend/feedbacks"]:
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory="backend/previews"), name="static")
+app.mount("/preview", StaticFiles(directory="backend/previews"), name="pv")
+app.mount("/feedback", StaticFiles(directory="backend/feedbacks"), name="fb")
+
 
 app.include_router(api_router)
